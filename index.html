@@ -24,11 +24,15 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        // Load a texture for the paper
+        const textureLoader = new THREE.TextureLoader();
+        const paperTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg');
+
         // Create a geometry for the paper (a flat plane)
         const geometry = new THREE.PlaneGeometry(4, 4);
 
-        // Create a material for the paper
-        const material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        // Create a material for the paper using the texture
+        const material = new THREE.MeshBasicMaterial({ map: paperTexture, side: THREE.DoubleSide });
 
         // Create a mesh by combining the geometry and material
         const paper = new THREE.Mesh(geometry, material);
@@ -66,7 +70,7 @@
 
                 // Update paper rotation based on mouse movement
                 paper.rotation.y -= deltaX * sensitivity;
-                paper.rotation.x -= deltaY * sensitivity;
+                paper.rotation.x += deltaY * sensitivity; // Invert the Y-axis movement
 
                 mouseX = event.clientX;
                 mouseY = event.clientY;
