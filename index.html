@@ -195,8 +195,8 @@
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
 
-        document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
-        document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
+        document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
+        document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
 
         // Render loop
         function animate() {
