@@ -38,16 +38,40 @@
         const ambientLight = new THREE.AmbientLight(0x404040); // soft white light
         scene.add(ambientLight);
 
-        // Render loop
-        function animate() {
-            requestAnimationFrame(animate);
+        // Variables to track mouse movement and scroll wheel state
+        let isMouseDown = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        const sensitivity = 0.005;
 
-            // Rotate the paper for some basic animation
-            paper.rotation.x += 0.01;
-            paper.rotation.y += 0.01;
+        // Event listeners for mouse interactions
+        window.addEventListener('mousedown', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                isMouseDown = true;
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            }
+        });
 
-            renderer.render(scene, camera);
-        }
+        window.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle mouse button
+                isMouseDown = false;
+            }
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (isMouseDown) {
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+                
+                // Update camera rotation based on mouse movement
+                camera.rotation.y -= deltaX * sensitivity;
+                camera.rotation.x -= deltaY * sensitivity;
+
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            }
+        });
 
         animate();
 
