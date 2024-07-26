@@ -7,9 +7,38 @@
     <style>
         body { margin: 0; }
         canvas { display: block; }
+        .button-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        #button1 {
+            background-image: url('https://outlandish777.github.io/origami/top_view.png');
+        }
+        #button2 {
+            background-image: url('https://outlandish777.github.io/origami/side_view.png');
+        }
+        #button3 {
+            background-image: url('https://outlandish777.github.io/origami/bottom_view.png');
+        }
     </style>
 </head>
 <body>
+    <div class="button-container">
+        <button id="button1" class="button"></button>
+        <button id="button2" class="button"></button>
+        <button id="button3" class="button"></button>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // Create the scene
@@ -87,10 +116,14 @@
             targetZoom = Math.max(minZoom, Math.min(maxZoom, targetZoom)); // Clamp zoom value
         });
 
-        // Smooth zoom effect
+        // Smooth zoom effect with speed adjustment as it approaches minZoom
         function updateCameraZoom() {
             const zoomSpeedFactor = 0.1; // Controls the smoothness of the zoom effect
-            camera.position.z += (targetZoom - camera.position.z) * zoomSpeedFactor;
+            const zoomDistance = Math.abs(targetZoom - camera.position.z);
+            const distanceFactor = Math.min(1, zoomDistance / (maxZoom - minZoom));
+            const adjustedSpeed = zoomSpeedFactor * (1 - distanceFactor); // Slower as it approaches minZoom
+
+            camera.position.z += (targetZoom - camera.position.z) * adjustedSpeed;
         }
 
         // Snap camera view
@@ -126,6 +159,11 @@
                     break;
             }
         });
+
+        // Event listeners for button clicks
+        document.getElementById('button1').addEventListener('click', () => snapToView('top'));
+        document.getElementById('button2').addEventListener('click', () => snapToView('side'));
+        document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
 
         // Render loop
         function animate() {
