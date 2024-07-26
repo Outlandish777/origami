@@ -55,7 +55,7 @@
 
         // Create a camera and position it
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 5); // Fixed camera position
+        camera.position.set(0, 0, 5); // Initial camera position
 
         // Create a renderer and attach it to the DOM
         const renderer = new THREE.WebGLRenderer();
@@ -88,10 +88,10 @@
         const zoomSpeed = 0.01; // Reduced speed of zooming
         let targetZoom = camera.position.z;
         const minZoom = 1; // Minimum zoom distance
-        const maxZoom = 20; // Extended maximum zoom distance
+        const maxZoom = 26; // Extended maximum zoom distance
 
         // Define zoom stops
-        const zoomStops = [3, 5, 7, 10, 15, 20];
+        const zoomStops = [3, 5, 7, 10, 15, 20, 26];
         let currentZoomStopIndex = zoomStops.findIndex(z => Math.abs(camera.position.z - z) < 0.1) || 0;
 
         // Event listeners for mouse interactions
@@ -132,7 +132,7 @@
 
         // Smooth zoom effect with more zoom stops
         function updateCameraZoom() {
-            const zoomSpeedFactor = 0.1; // Controls the smoothness of the zoom effect
+            const zoomSpeedFactor = 0.05; // Controls the smoothness of the zoom effect
             const zoomDistance = Math.abs(targetZoom - camera.position.z);
             const distanceFactor = Math.min(1, zoomDistance / (maxZoom - minZoom));
             const adjustedSpeed = zoomSpeedFactor * (1 - distanceFactor); // Slower as it approaches minZoom
@@ -160,21 +160,49 @@
             requestAnimationFrame(animateRotation);
         }
 
-        // Smoothly transition the paper rotation to snap to a view
+        // Smoothly transition the camera and paper rotation to snap to a view
         function snapToView(view) {
-            let targetRotation;
+            const duration = 500; // Transition duration in milliseconds
+            const startTime = performance.now();
+
+            const initialCameraPosition = camera.position.clone();
+            const initialPaperRotation = paper.rotation.clone();
+            let targetCameraPosition;
+            let targetPaperRotation;
+
             switch (view) {
                 case 'top':
-                    targetRotation = 0;
+                    targetCameraPosition = new THREE.Vector3(0, 0, 5);
+                    targetPaperRotation = new THREE.Euler(0, 0, 0);
                     break;
                 case 'side':
-                    targetRotation = -Math.PI / 2;
+                    targetCameraPosition = new THREE.Vector3(0, 5, 0);
+                    targetPaperRotation = new THREE.Euler(-Math.PI / 2, 0, 0);
                     break;
                 case 'bottom':
-                    targetRotation = Math.PI;
+                    targetCameraPosition = new THREE.Vector3(0, 0, -5);
+                    targetPaperRotation = new THREE.Euler(Math.PI, 0, 0);
                     break;
             }
-            rotatePaper(targetRotation, 500); // Smooth transition
+
+            function animateTransition(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1); // Normalize to [0, 1]
+
+                // Interpolate camera position
+                camera.position.lerpVectors(initialCameraPosition, targetCameraPosition, progress);
+
+                // Interpolate paper rotation
+                paper.rotation.x = THREE.MathUtils.lerp(initialPaperRotation.x, targetPaperRotation.x, progress);
+                paper.rotation.y = THREE.MathUtils.lerp(initialPaperRotation.y, targetPaperRotation.y, progress);
+                paper.rotation.z = THREE.MathUtils.lerp(initialPaperRotation.z, targetPaperRotation.z, progress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateTransition);
+                }
+            }
+
+            requestAnimationFrame(animateTransition);
         }
 
         // Event listener for key presses
@@ -202,15 +230,14 @@
         document.getElementById('button1').addEventListener('click', () => snapToView('top'));
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
-
         document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
         document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
 
         // Render loop
         function animate() {
-            requestAnimationFrame(animate);
             updateCameraZoom();
             renderer.render(scene, camera);
+            requestAnimationFrame(animate);
         }
 
         animate();
