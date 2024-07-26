@@ -308,25 +308,49 @@
         });
 
         function createFold(point1, point2) {
-            const foldDirection = new THREE.Vector3().subVectors(point2, point1).normalize();
-            const foldPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(foldDirection, point1);
+            // Create a plane from the crease line
+            const creaseDirection = new THREE.Vector3().subVectors(point2, point1).normalize();
+            const creasePlane = new THREE.Plane().setFromNormalAndCoplanarPoint(creaseDirection, point1);
+
+            // Define the rotation matrix for 180-degree rotation around the crease
+            const rotationMatrix = new THREE.Matrix4().makeRotationAxis(creaseDirection, Math.PI);
 
             const positions = paper.geometry.attributes.position.array;
             const numVertices = positions.length / 3;
 
+            let topHalfVertices = [];
+            let bottomHalfVertices = [];
+
+            // Split vertices into top and bottom halves based on the crease plane
             for (let i = 0; i < numVertices; i++) {
                 const vertex = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-                if (foldPlane.distanceToPoint(vertex) < 0) {
-                    const distance = foldPlane.distanceToPoint(vertex);
-                    const offset = foldDirection.clone().multiplyScalar(2 * distance);
-                    vertex.add(offset);
-                    positions[i * 3] = vertex.x;
-                    positions[i * 3 + 1] = vertex.y;
-                    positions[i * 3 + 2] = vertex.z;
+                if (creasePlane.distanceToPoint(vertex) > 0) {
+                    topHalfVertices.push(vertex);
+                } else {
+                    bottomHalfVertices.push(vertex);
                 }
             }
 
+            // Apply rotation to the top half of the paper
+            topHalfVertices.forEach(vertex => {
+                const rotatedVertex = vertex.clone().applyMatrix4(rotationMatrix);
+                positions[vertexIndex(vertex)] = rotatedVertex.x;
+                positions[vertexIndex(vertex) + 1] = rotatedVertex.y;
+                positions[vertexIndex(vertex) + 2] = rotatedVertex.z;
+            });
+
             paper.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function vertexIndex(vertex) {
+            const positions = paper.geometry.attributes.position.array;
+            const numVertices = positions.length / 3;
+            for (let i = 0; i < numVertices; i++) {
+                if (positions[i * 3] === vertex.x && positions[i * 3 + 1] === vertex.y && positions[i * 3 + 2] === vertex.z) {
+                    return i * 3;
+                }
+            }
+            return -1;
         }
 
         // Render loop
