@@ -73,6 +73,12 @@
             }
         });
 
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
         animate();
 
         // Handle window resizing
