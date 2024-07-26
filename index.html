@@ -20,7 +20,7 @@
             border: none;
             background-size: contain;
             background-position: center;
-            margin-bottom: 15px; /* Increased space between buttons */
+            margin: 15px; /* Increased space between buttons */
             cursor: pointer;
         }
         #button1 {
@@ -64,21 +64,19 @@
 
         // Load textures
         const textureLoader = new THREE.TextureLoader();
-        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg');
-        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.png');
+        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg'); 
+        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.jpg');
 
         // Create materials for the front and back sides of the paper
         const frontMaterial = new THREE.MeshBasicMaterial({ map: frontTexture });
         const backMaterial = new THREE.MeshBasicMaterial({ map: backTexture });
 
-        // Create an array of materials
-        const materials = [frontMaterial, backMaterial];
-
         // Create a geometry for the paper (a flat plane)
         const geometry = new THREE.PlaneGeometry(4, 4);
 
         // Create a mesh by combining the geometry and the materials
-        const paper = new THREE.Mesh(geometry, materials);
+        const paper = new THREE.Mesh(geometry, [frontMaterial, backMaterial]);
+        paper.material.side = THREE.DoubleSide; // Ensure both sides are visible
         scene.add(paper);
 
         // Add basic lighting
@@ -175,9 +173,9 @@
                 const elapsed = time - startTime;
                 const progress = Math.min(elapsed / duration, 1); // Normalize to [0, 1]
 
-                paper.rotation.x = THREE.MathUtils.lerp(initialRotation.x, targetRotation.x, progress);
-                paper.rotation.y = THREE.MathUtils.lerp(initialRotation.y, targetRotation.y, progress);
-                paper.rotation.z = THREE.MathUtils.lerp(initialRotation.z, targetRotation.z, progress);
+                paper.rotation.x = initialRotation.x + shortestRotation(initialRotation.x, targetRotation.x) * progress;
+                paper.rotation.y = initialRotation.y + shortestRotation(initialRotation.y, targetRotation.y) * progress;
+                paper.rotation.z = initialRotation.z + shortestRotation(initialRotation.z, targetRotation.z) * progress;
 
                 if (progress < 1) {
                     requestAnimationFrame(animateRotation);
@@ -190,7 +188,7 @@
         // Smooth rotation function
         function rotatePaper(targetRotation, duration) {
             const startRotation = paper.rotation.z;
-            const rotationDiff = shortestRotation(startRotation, targetRotation);
+            const rotationDiff = targetRotation - startRotation;
             const startTime = performance.now();
 
             function animateRotation(time) {
