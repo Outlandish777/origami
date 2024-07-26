@@ -62,18 +62,23 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Load a texture for the paper
+        // Load textures
         const textureLoader = new THREE.TextureLoader();
-        const paperTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg');
+        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg');
+        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.png');
+
+        // Create materials for the front and back sides of the paper
+        const frontMaterial = new THREE.MeshBasicMaterial({ map: frontTexture });
+        const backMaterial = new THREE.MeshBasicMaterial({ map: backTexture });
+
+        // Create an array of materials
+        const materials = [frontMaterial, backMaterial];
 
         // Create a geometry for the paper (a flat plane)
         const geometry = new THREE.PlaneGeometry(4, 4);
 
-        // Create a material for the paper using the texture
-        const material = new THREE.MeshBasicMaterial({ map: paperTexture, side: THREE.DoubleSide });
-
-        // Create a mesh by combining the geometry and material
-        const paper = new THREE.Mesh(geometry, material);
+        // Create a mesh by combining the geometry and the materials
+        const paper = new THREE.Mesh(geometry, materials);
         scene.add(paper);
 
         // Add basic lighting
@@ -140,6 +145,12 @@
             camera.position.z += (targetZoom - camera.position.z) * adjustedSpeed;
         }
 
+        // Calculate shortest rotation path
+        function shortestRotation(current, target) {
+            const delta = (target - current) % (2 * Math.PI);
+            return (delta + Math.PI) % (2 * Math.PI) - Math.PI;
+        }
+
         // Snap view by rotating the paper
         function snapToView(view) {
             const duration = 500; // Duration in milliseconds
@@ -179,7 +190,7 @@
         // Smooth rotation function
         function rotatePaper(targetRotation, duration) {
             const startRotation = paper.rotation.z;
-            const rotationDiff = targetRotation - startRotation;
+            const rotationDiff = shortestRotation(startRotation, targetRotation);
             const startTime = performance.now();
 
             function animateRotation(time) {
@@ -221,6 +232,7 @@
         document.getElementById('button1').addEventListener('click', () => snapToView('top'));
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
+
         document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
         document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
 
