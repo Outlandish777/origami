@@ -165,6 +165,8 @@
                         createValleyFold(startPoint, endPoint);
                         startPoint = null;
                         endPoint = null;
+                        isToolActive = false;
+                        document.getElementById('foldToolButton').style.backgroundColor = ''; // Reset button color
                     }
                 }
             }
@@ -244,19 +246,22 @@
 
         // Create valley fold between two points
         function createValleyFold(startPoint, endPoint) {
+            // Calculate the direction vector of the fold line
             const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
-            const midpoint = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
-            const foldAxis = new THREE.Vector3(0, 0, 1).cross(direction).normalize();
-            const foldAngle = Math.acos(direction.dot(new THREE.Vector3(1, 0, 0)));
 
-            // Fold the paper along the line
+            // Calculate the midpoint of the fold line
+            const midpoint = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
+
+            // Create a folding plane
+            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), midpoint);
+
+            // Update vertices based on fold plane
             const vertices = paper.geometry.attributes.position.array;
             for (let i = 0; i < vertices.length; i += 3) {
                 const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
-                const vectorToFoldLine = new THREE.Vector3().subVectors(vertex, midpoint);
-                const distanceToFoldLine = vectorToFoldLine.dot(direction);
-                if (Math.abs(distanceToFoldLine) < 0.1) { // Check if the vertex is near the fold line
-                    const foldedVertex = vertex.clone().applyMatrix4(new THREE.Matrix4().makeRotationAxis(foldAxis, foldAngle));
+                const distanceToPlane = plane.distanceToPoint(vertex);
+                if (Math.abs(distanceToPlane) < 0.1) { // Check if the vertex is near the fold line
+                    const foldedVertex = vertex.clone().sub(plane.normal.clone().multiplyScalar(2 * distanceToPlane));
                     vertices[i] = foldedVertex.x;
                     vertices[i + 1] = foldedVertex.y;
                     vertices[i + 2] = foldedVertex.z;
