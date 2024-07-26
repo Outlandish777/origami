@@ -20,7 +20,7 @@
             border: none;
             background-size: contain;
             background-position: center;
-            margin-bottom: 15px; /* Increased space between buttons */
+            margin: 20px; /* Increased space between buttons */
             cursor: pointer;
         }
         #button1 {
@@ -38,6 +38,19 @@
         #buttonRight {
             background-image: url('https://outlandish777.github.io/origami/right_90.png');
         }
+        #foldToolButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background-size: contain;
+            background-position: center;
+            cursor: pointer;
+            background-image: url('https://outlandish777.github.io/origami/valley_fold.jpg'); 
+        }
     </style>
 </head>
 <body>
@@ -47,6 +60,7 @@
         <button id="button3" class="button"></button>
         <button id="buttonLeft" class="button"></button>
         <button id="buttonRight" class="button"></button>
+        <button id="foldToolButton" class="button"></button>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -62,23 +76,25 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Load textures
+        // Load textures for the paper
         const textureLoader = new THREE.TextureLoader();
-        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg'); // Front texture
-        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.jpg'); // Back texture
+        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg');
+        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.jpg');
 
-        // Create a custom shader material for double-sided texture
-        const shaderMaterial = new THREE.ShaderMaterial({
+        // Create a geometry for the paper (a flat plane)
+        const geometry = new THREE.PlaneGeometry(4, 4);
+
+        // Create a material for the paper using two textures
+        const material = new THREE.ShaderMaterial({
             uniforms: {
-                frontTexture: { type: 't', value: frontTexture },
-                backTexture: { type: 't', value: backTexture }
+                frontTexture: { value: frontTexture },
+                backTexture: { value: backTexture }
             },
             vertexShader: `
                 varying vec2 vUv;
                 void main() {
                     vUv = uv;
-                    vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
-                    gl_Position = projectionMatrix * modelViewPosition;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
             `,
             fragmentShader: `
@@ -86,7 +102,6 @@
                 uniform sampler2D backTexture;
                 varying vec2 vUv;
                 void main() {
-                    // Use the front texture for the front side, and back texture for the back side
                     if (gl_FrontFacing) {
                         gl_FragColor = texture2D(frontTexture, vUv);
                     } else {
@@ -94,14 +109,11 @@
                     }
                 }
             `,
-            side: THREE.DoubleSide // Make sure the material is double-sided
+            side: THREE.DoubleSide
         });
 
-        // Create a geometry for the paper (a flat plane)
-        const geometry = new THREE.PlaneGeometry(4, 4);
-
-        // Create a mesh by combining the geometry and the custom shader material
-        const paper = new THREE.Mesh(geometry, shaderMaterial);
+        // Create a mesh by combining the geometry and material
+        const paper = new THREE.Mesh(geometry, material);
         scene.add(paper);
 
         // Add basic lighting
@@ -115,12 +127,17 @@
         const sensitivity = 0.005;
         const zoomSpeed = 0.01; // Reduced speed of zooming
         let targetZoom = camera.position.z;
-        const minZoom = 0.5; // Lower minimum zoom distance
-        const maxZoom = 20; // Extended maximum zoom distance
+        const minZoom = 0.5; // Minimum zoom distance (closer to paper)
+        const maxZoom = 30; // Extended maximum zoom distance
 
         // Define zoom stops
-        const zoomStops = [0.5, 1, 3, 5, 7, 10, 15, 20];
+        const zoomStops = [1, 2, 4, 6, 8, 12, 16, 20, 30];
         let currentZoomStopIndex = zoomStops.findIndex(z => Math.abs(camera.position.z - z) < 0.1) || 0;
+
+        // Variables for the fold tool
+        let isToolActive = false;
+        let startPoint = null;
+        let endPoint = null;
 
         // Event listeners for mouse interactions
         window.addEventListener('mousedown', (event) => {
@@ -128,6 +145,29 @@
                 isMouseDown = true;
                 mouseX = event.clientX;
                 mouseY = event.clientY;
+            } else if (isToolActive) { // Tool mode
+                const mousePosition = new THREE.Vector2(
+                    (event.clientX / window.innerWidth) * 2 - 1,
+                    -(event.clientY / window.innerHeight) * 2 + 1
+                );
+
+                // Create a raycaster to determine the position on the paper
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mousePosition, camera);
+                const intersects = raycaster.intersectObject(paper);
+
+                if (intersects.length > 0) {
+                    const point = intersects[0].point;
+
+                    if (!startPoint) {
+                        startPoint = point;
+                    } else {
+                        endPoint = point;
+                        createValleyFold(startPoint, endPoint);
+                        startPoint = null;
+                        endPoint = null;
+                    }
+                }
             }
         });
 
@@ -168,46 +208,19 @@
             camera.position.z += (targetZoom - camera.position.z) * adjustedSpeed;
         }
 
-        // Calculate shortest rotation path
-        function shortestRotation(current, target) {
-            const delta = (target - current) % (2 * Math.PI);
-            return (delta + Math.PI) % (2 * Math.PI) - Math.PI;
-        }
-
         // Snap view by rotating the paper
         function snapToView(view) {
-            const duration = 500; // Duration in milliseconds
-            const startTime = performance.now();
-
-            const initialRotation = paper.rotation.clone();
-            let targetRotation;
-
             switch (view) {
                 case 'top':
-                    targetRotation = new THREE.Euler(0, 0, 0);
+                    paper.rotation.set(0, 0, 0); // Reset paper rotation to face the top view
                     break;
                 case 'side':
-                    targetRotation = new THREE.Euler(-Math.PI / 2, 0, 0);
+                    paper.rotation.set(-Math.PI / 2, 0, 0); // Rotate paper to face the side view
                     break;
                 case 'bottom':
-                    targetRotation = new THREE.Euler(Math.PI, 0, 0);
+                    paper.rotation.set(Math.PI, 0, 0); // Rotate paper to face the bottom view
                     break;
             }
-
-            function animateRotation(time) {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / duration, 1); // Normalize to [0, 1]
-
-                paper.rotation.x = initialRotation.x + shortestRotation(initialRotation.x, targetRotation.x) * progress;
-                paper.rotation.y = initialRotation.y + shortestRotation(initialRotation.y, targetRotation.y) * progress;
-                paper.rotation.z = initialRotation.z + shortestRotation(initialRotation.z, targetRotation.z) * progress;
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateRotation);
-                }
-            }
-
-            requestAnimationFrame(animateRotation);
         }
 
         // Smooth rotation function
@@ -228,6 +241,22 @@
             }
 
             requestAnimationFrame(animateRotation);
+        }
+
+        // Create valley fold between two points
+        function createValleyFold(startPoint, endPoint) {
+            // Calculate the direction vector of the fold line
+            const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
+
+            // Calculate the midpoint of the fold line
+            const midpoint = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
+
+            // Apply transformation to create the fold
+            const foldAxis = new THREE.Vector3(0, 0, 1).cross(direction).normalize();
+            const foldAngle = Math.acos(direction.dot(new THREE.Vector3(1, 0, 0)));
+
+            paper.rotation.z += foldAngle;
+            paper.position.add(midpoint);
         }
 
         // Event listener for key presses
@@ -255,9 +284,14 @@
         document.getElementById('button1').addEventListener('click', () => snapToView('top'));
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
-
         document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
         document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
+        
+        // Event listener for fold tool button
+        document.getElementById('foldToolButton').addEventListener('click', () => {
+            isToolActive = !isToolActive;
+            document.getElementById('foldToolButton').style.backgroundColor = isToolActive ? 'lightblue' : ''; // Change button color to indicate activation
+        });
 
         // Render loop
         function animate() {
