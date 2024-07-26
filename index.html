@@ -42,12 +42,15 @@
         const ambientLight = new THREE.AmbientLight(0x404040); // soft white light
         scene.add(ambientLight);
 
-        // Variables to track mouse movement and scroll wheel state
+        // Variables to track mouse movement, scroll wheel state, and zoom
         let isMouseDown = false;
         let mouseX = 0;
         let mouseY = 0;
         const sensitivity = 0.005;
-        let zoom = camera.position.z;
+        const zoomSpeed = 0.05; // Speed of zooming
+        let targetZoom = camera.position.z;
+        const minZoom = 1; // Minimum zoom distance
+        const maxZoom = 10; // Maximum zoom distance
 
         // Event listeners for mouse interactions
         window.addEventListener('mousedown', (event) => {
@@ -80,9 +83,15 @@
 
         // Handle scroll wheel zoom
         window.addEventListener('wheel', (event) => {
-            zoom += event.deltaY * 0.1; // Adjust zoom speed
-            camera.position.z = Math.max(1, zoom); // Prevent zooming too close
+            targetZoom += event.deltaY * zoomSpeed;
+            targetZoom = Math.max(minZoom, Math.min(maxZoom, targetZoom)); // Clamp zoom value
         });
+
+        // Smooth zoom effect
+        function updateCameraZoom() {
+            const zoomSpeedFactor = 0.1; // Controls the smoothness of the zoom effect
+            camera.position.z += (targetZoom - camera.position.z) * zoomSpeedFactor;
+        }
 
         // Snap camera view
         function snapToView(view) {
@@ -121,6 +130,7 @@
         // Render loop
         function animate() {
             requestAnimationFrame(animate);
+            updateCameraZoom();
             renderer.render(scene, camera);
         }
 
