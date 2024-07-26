@@ -20,7 +20,7 @@
             border: none;
             background-size: contain;
             background-position: center;
-            margin: 15px; /* Increased space between buttons */
+            margin-bottom: 15px; /* Increased space between buttons */
             cursor: pointer;
         }
         #button1 {
@@ -64,19 +64,44 @@
 
         // Load textures
         const textureLoader = new THREE.TextureLoader();
-        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg'); 
-        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.jpg');
+        const frontTexture = textureLoader.load('https://outlandish777.github.io/origami/paper.jpg'); // Front texture
+        const backTexture = textureLoader.load('https://outlandish777.github.io/origami/paper2.jpg'); // Back texture
 
-        // Create materials for the front and back sides of the paper
-        const frontMaterial = new THREE.MeshBasicMaterial({ map: frontTexture });
-        const backMaterial = new THREE.MeshBasicMaterial({ map: backTexture });
+        // Create a custom shader material for double-sided texture
+        const shaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                frontTexture: { type: 't', value: frontTexture },
+                backTexture: { type: 't', value: backTexture }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_Position = projectionMatrix * modelViewPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D frontTexture;
+                uniform sampler2D backTexture;
+                varying vec2 vUv;
+                void main() {
+                    // Use the front texture for the front side, and back texture for the back side
+                    if (gl_FrontFacing) {
+                        gl_FragColor = texture2D(frontTexture, vUv);
+                    } else {
+                        gl_FragColor = texture2D(backTexture, vUv);
+                    }
+                }
+            `,
+            side: THREE.DoubleSide // Make sure the material is double-sided
+        });
 
         // Create a geometry for the paper (a flat plane)
         const geometry = new THREE.PlaneGeometry(4, 4);
 
-        // Create a mesh by combining the geometry and the materials
-        const paper = new THREE.Mesh(geometry, [frontMaterial, backMaterial]);
-        paper.material.side = THREE.DoubleSide; // Ensure both sides are visible
+        // Create a mesh by combining the geometry and the custom shader material
+        const paper = new THREE.Mesh(geometry, shaderMaterial);
         scene.add(paper);
 
         // Add basic lighting
