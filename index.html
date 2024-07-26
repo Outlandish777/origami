@@ -140,22 +140,7 @@
             camera.position.z += (targetZoom - camera.position.z) * adjustedSpeed;
         }
 
-        // Snap view by rotating the paper
-        function snapToView(view) {
-            switch (view) {
-                case 'top':
-                    paper.rotation.set(0, 0, 0); // Reset paper rotation to face the top view
-                    break;
-                case 'side':
-                    paper.rotation.set(-Math.PI / 2, 0, 0); // Rotate paper to face the side view
-                    break;
-                case 'bottom':
-                    paper.rotation.set(Math.PI, 0, 0); // Rotate paper to face the bottom view
-                    break;
-            }
-        }
-
-        // Smooth rotation function
+        // Smoothly rotate the paper
         function rotatePaper(targetRotation, duration) {
             const startRotation = paper.rotation.z;
             const rotationDiff = targetRotation - startRotation;
@@ -175,6 +160,23 @@
             requestAnimationFrame(animateRotation);
         }
 
+        // Smoothly transition the paper rotation to snap to a view
+        function snapToView(view) {
+            let targetRotation;
+            switch (view) {
+                case 'top':
+                    targetRotation = 0;
+                    break;
+                case 'side':
+                    targetRotation = -Math.PI / 2;
+                    break;
+                case 'bottom':
+                    targetRotation = Math.PI;
+                    break;
+            }
+            rotatePaper(targetRotation, 500); // Smooth transition
+        }
+
         // Event listener for key presses
         window.addEventListener('keydown', (event) => {
             switch (event.key) {
@@ -187,6 +189,12 @@
                 case '3':
                     snapToView('bottom');
                     break;
+                case 'ArrowLeft':
+                    rotatePaper(paper.rotation.z - Math.PI / 2, 500);
+                    break;
+                case 'ArrowRight':
+                    rotatePaper(paper.rotation.z + Math.PI / 2, 500);
+                    break;
             }
         });
 
@@ -195,8 +203,8 @@
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
 
-        document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
-        document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
+        document.getElementById('buttonLeft').addEventListener('click', () => rotatePaper(paper.rotation.z - Math.PI / 2, 500));
+        document.getElementById('buttonRight').addEventListener('click', () => rotatePaper(paper.rotation.z + Math.PI / 2, 500));
 
         // Render loop
         function animate() {
