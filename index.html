@@ -77,10 +77,10 @@
         let mouseX = 0;
         let mouseY = 0;
         const sensitivity = 0.005;
-        const zoomSpeed = 0.05; // Speed of zooming
+        const zoomSpeed = 0.01; // Reduced speed of zooming
         let targetZoom = camera.position.z;
         const minZoom = 1; // Minimum zoom distance
-        const maxZoom = 10; // Maximum zoom distance
+        const maxZoom = 13; // Increased maximum zoom distance (1.3 times the previous limit)
 
         // Event listeners for mouse interactions
         window.addEventListener('mousedown', (event) => {
@@ -161,7 +161,7 @@
             }
         });
 
-        // Event listeners for button clicks
+        // Event listeners for button clicks (Undo the most recent change)
         document.getElementById('button1').addEventListener('click', () => snapToView('top'));
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
