@@ -80,7 +80,11 @@
         const zoomSpeed = 0.01; // Reduced speed of zooming
         let targetZoom = camera.position.z;
         const minZoom = 1; // Minimum zoom distance
-        const maxZoom = 13; // Increased maximum zoom distance (1.3 times the previous limit)
+        const maxZoom = 13; // Increased maximum zoom distance
+
+        // Define zoom stops
+        const zoomStops = [3, 5, 7, 10, 13];
+        let currentZoomStopIndex = zoomStops.findIndex(z => Math.abs(camera.position.z - z) < 0.1) || 0;
 
         // Event listeners for mouse interactions
         window.addEventListener('mousedown', (event) => {
@@ -113,11 +117,12 @@
 
         // Handle scroll wheel zoom
         window.addEventListener('wheel', (event) => {
-            targetZoom += event.deltaY * zoomSpeed;
+            currentZoomStopIndex = Math.max(0, Math.min(zoomStops.length - 1, currentZoomStopIndex + Math.sign(event.deltaY)));
+            targetZoom = zoomStops[currentZoomStopIndex];
             targetZoom = Math.max(minZoom, Math.min(maxZoom, targetZoom)); // Clamp zoom value
         });
 
-        // Smooth zoom effect with speed adjustment as it approaches minZoom
+        // Smooth zoom effect with more zoom stops
         function updateCameraZoom() {
             const zoomSpeedFactor = 0.1; // Controls the smoothness of the zoom effect
             const zoomDistance = Math.abs(targetZoom - camera.position.z);
@@ -161,7 +166,7 @@
             }
         });
 
-        // Event listeners for button clicks (Undo the most recent change)
+        // Event listeners for button clicks
         document.getElementById('button1').addEventListener('click', () => snapToView('top'));
         document.getElementById('button2').addEventListener('click', () => snapToView('side'));
         document.getElementById('button3').addEventListener('click', () => snapToView('bottom'));
