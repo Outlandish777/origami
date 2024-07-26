@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Paper Simulation</title>
     <style>
-        /* Code written primarily by ChatGPT */
         body { margin: 0; }
         canvas { display: block; }
         .button-container {
@@ -49,7 +48,7 @@
             background-size: contain;
             background-position: center;
             cursor: pointer;
-            background-image: url('https://outlandish777.github.io/origami/valley_fold.jpg'); 
+            background-image: url('https://outlandish777.github.io/origami/valley_fold.jpg');
         }
     </style>
 </head>
@@ -245,18 +244,27 @@
 
         // Create valley fold between two points
         function createValleyFold(startPoint, endPoint) {
-            // Calculate the direction vector of the fold line
             const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
-
-            // Calculate the midpoint of the fold line
             const midpoint = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
-
-            // Apply transformation to create the fold
             const foldAxis = new THREE.Vector3(0, 0, 1).cross(direction).normalize();
             const foldAngle = Math.acos(direction.dot(new THREE.Vector3(1, 0, 0)));
 
-            paper.rotation.z += foldAngle;
-            paper.position.add(midpoint);
+            // Fold the paper along the line
+            const vertices = paper.geometry.attributes.position.array;
+            for (let i = 0; i < vertices.length; i += 3) {
+                const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+                const vectorToFoldLine = new THREE.Vector3().subVectors(vertex, midpoint);
+                const distanceToFoldLine = vectorToFoldLine.dot(direction);
+                if (Math.abs(distanceToFoldLine) < 0.1) { // Check if the vertex is near the fold line
+                    const foldedVertex = vertex.clone().applyMatrix4(new THREE.Matrix4().makeRotationAxis(foldAxis, foldAngle));
+                    vertices[i] = foldedVertex.x;
+                    vertices[i + 1] = foldedVertex.y;
+                    vertices[i + 2] = foldedVertex.z;
+                }
+            }
+
+            // Notify the geometry of the changes
+            paper.geometry.attributes.position.needsUpdate = true;
         }
 
         // Event listener for key presses
