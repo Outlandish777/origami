@@ -331,15 +331,34 @@
                 }
             }
 
-            // Apply rotation to the top half of the paper
-            topHalfVertices.forEach(vertex => {
-                const rotatedVertex = vertex.clone().applyMatrix4(rotationMatrix);
-                positions[vertexIndex(vertex)] = rotatedVertex.x;
-                positions[vertexIndex(vertex) + 1] = rotatedVertex.y;
-                positions[vertexIndex(vertex) + 2] = rotatedVertex.z;
-            });
+            // Animate the folding
+            let animationProgress = 0;
+            const animationDuration = 1000; // 1 second
+            const animationStart = performance.now();
 
-            paper.geometry.attributes.position.needsUpdate = true;
+            function animateFold() {
+                const elapsed = performance.now() - animationStart;
+                animationProgress = Math.min(elapsed / animationDuration, 1);
+
+                // Apply rotation to the top half of the paper
+                topHalfVertices.forEach(vertex => {
+                    const rotatedVertex = vertex.clone().applyMatrix4(rotationMatrix);
+                    const index = vertexIndex(vertex);
+                    if (index !== -1) {
+                        positions[index] = THREE.MathUtils.lerp(vertex.x, rotatedVertex.x, animationProgress);
+                        positions[index + 1] = THREE.MathUtils.lerp(vertex.y, rotatedVertex.y, animationProgress);
+                        positions[index + 2] = THREE.MathUtils.lerp(vertex.z, rotatedVertex.z, animationProgress);
+                    }
+                });
+
+                paper.geometry.attributes.position.needsUpdate = true;
+
+                if (animationProgress < 1) {
+                    requestAnimationFrame(animateFold);
+                }
+            }
+
+            animateFold();
         }
 
         function vertexIndex(vertex) {
