@@ -69,8 +69,8 @@
                 const deltaY = event.clientY - mouseY;
 
                 // Update paper rotation based on mouse movement
-                paper.rotation.y -= deltaX * sensitivity;
-                paper.rotation.x += deltaY * sensitivity; // Invert the Y-axis movement
+                paper.rotation.y += deltaY * sensitivity;
+                paper.rotation.x -= deltaX * sensitivity; // Invert the Y-axis movement
 
                 mouseX = event.clientX;
                 mouseY = event.clientY;
