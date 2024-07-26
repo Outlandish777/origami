@@ -87,11 +87,11 @@
         const sensitivity = 0.005;
         const zoomSpeed = 0.01; // Reduced speed of zooming
         let targetZoom = camera.position.z;
-        const minZoom = 1; // Minimum zoom distance
+        const minZoom = 0.5; // Lower minimum zoom distance
         const maxZoom = 20; // Extended maximum zoom distance
 
         // Define zoom stops
-        const zoomStops = [3, 5, 7, 10, 15, 20];
+        const zoomStops = [0.5, 1, 3, 5, 7, 10, 15, 20];
         let currentZoomStopIndex = zoomStops.findIndex(z => Math.abs(camera.position.z - z) < 0.1) || 0;
 
         // Event listeners for mouse interactions
